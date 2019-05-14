@@ -13,7 +13,7 @@ all_hosts = set()
 misconfigured_count = 0
 outdated_count = 0
 
-with open('test.csv.csv') as csv_file:
+with open('test.csv') as csv_file:
     csv_reader = csv.DictReader(csv_file, delimiter=',')
     counter = 0
     for row in csv_reader:
