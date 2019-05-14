@@ -2,7 +2,6 @@ import csv
 from collections import OrderedDict
 
 # TODO: Filter for HIGH/CRITICAL risk and produce an excel with report by Vulnerabilities, containing solutions and all hosts affected.
-# TODO: Protocol doesn't work beacause it set TCP or UDP for each port and set only first time (maybe same port some udp and some tcp and only first protocol met on that port will be saved)
 
 networks_hosts_count = {}
 ports_protocols = {}
