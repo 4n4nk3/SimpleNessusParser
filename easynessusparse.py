@@ -63,7 +63,7 @@ else:
 for network in networks_hosts_count:
     total_vulns = 0
     for x in networks_hosts_count[network]:
-        if x != 'None':
+        if x != 'None' and x != 'Hosts':
             total_vulns += networks_hosts_count[network][x]
     print(
         '\n\n\nNetwork {}.X\t\tHosts:\t{}\t\tInfo:\t{}\n\n\tLow:\t\t{}\n\tMedium:\t\t{}\n\tHigh:\t\t{'
@@ -87,5 +87,5 @@ for port in high_critical_ports_protocols:
 
 other_causes_count = total_vulns - misconfigured_count - outdated_count
 print(
-    '\n\n\n\nFollowing data is an approximation!!!\n\tMisconfigurations:\t{}\n\tOutdated software:\t{}\n\tOther causes:\t{}'.format(
+    '\n\n\n\nFollowing data is not accurate!!!\n\n\tMisconfigurations:\t{}\n\tOutdated software:\t{}\n\tOther causes:\t{}'.format(
         misconfigured_count, outdated_count, other_causes_count))
