@@ -206,7 +206,7 @@ for name in high_critical_detailed:
     worksheet.write(row, col, hosts, centered)
     row += 1
     col = 1
-    worksheet.write(row, col, 'Solution', green)
+    worksheet.write(row, col, 'Solution')
     col += 1
     worksheet.write(row, col, high_critical_detailed[name]['solution'], green)
 
