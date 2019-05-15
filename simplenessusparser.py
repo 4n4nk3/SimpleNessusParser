@@ -208,7 +208,9 @@ for name in high_critical_detailed:
     col = 1
     worksheet.write(row, col, 'Solution')
     col += 1
-    worksheet.write(row, col, high_critical_detailed[name]['solution'], green)
+    solution = high_critical_detailed[name]['solution'].split()
+    solution = ' '.join(solution)
+    worksheet.write(row, col, solution, green)
 
 row += 3
 col = 0
@@ -230,7 +232,6 @@ row += 1
 worksheet.write(row, col, 'Other causes')
 col += 1
 worksheet.write(row, col, other_causes_count, centered)
-
 
 workbook.close()
 
