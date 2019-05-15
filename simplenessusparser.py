@@ -1,8 +1,11 @@
 import csv
 from collections import OrderedDict
 import xlsxwriter
+import sys
 
-# TODO: Filter for HIGH/CRITICAL risk and produce an excel with report by Vulnerabilities, containing solutions and all hosts affected.
+if len(sys.argv) < 3:
+    print('Missing arguments:\n\t{} [input_file.csv] [output_file.xlsx]'.format(sys.argv[0]))
+    sys.exit()
 
 networks_hosts_count = {}
 ports_protocols = {}
@@ -14,15 +17,16 @@ outdated_count = 0
 
 cols_replacements = (('0', 'A'), ('1', 'B'), ('2', 'C'), ('3', 'D'), ('4', 'E'), ('5', 'F'), ('6', 'G'))
 
-def col_replace(col):
-    for old, new in cols_replacements:
-        col = str(col).replace(old, new)
-    return col
 
-with open('test.csv') as csv_file:
+def col_replace(column):
+    for old, new in cols_replacements:
+        column = str(column).replace(old, new)
+    return column
+
+
+with open(sys.argv[1]) as csv_file:
     csv_reader = csv.DictReader(csv_file, delimiter=',')
     counter = 0
-    total_vulns = 0
     for row in csv_reader:
         if counter > 0:
             name = row['Name']
@@ -39,7 +43,6 @@ with open('test.csv') as csv_file:
                 networks_hosts_count[network]['Hosts'] += 1
             networks_hosts_count[network][risk] += 1
             if risk != 'None':
-                total_vulns += 1
                 if port != '0':
                     if port not in ports_protocols:
                         ports_protocols[port] = {}
@@ -72,95 +75,207 @@ with open('test.csv') as csv_file:
                     misconfigured_count += 1
         counter += 1
 
+total_vulns = networks_hosts_count[network]['Low'] + networks_hosts_count[network]['Medium'] + \
+              networks_hosts_count[network]['High'] + networks_hosts_count[network]['Critical']
+
+# xlsx file output
 row = 0
 col = 0
 
-workbook = xlsxwriter.Workbook('High_Critical.xlsx')
+workbook = xlsxwriter.Workbook(sys.argv[2])
 worksheet = workbook.add_worksheet()
+centered = workbook.add_format({'align': 'center'})
+red_centered = workbook.add_format({'font_color': 'red', 'align': 'center'})
+green = workbook.add_format({'font_color': 'green'})
+bold = workbook.add_format({'bold': True})
+bold_centered = workbook.add_format({'bold': True, 'locked': True, 'align': 'center'})
 
 worksheet.write(row, col, 'Hosts')
 col += 1
-worksheet.write(row, col, len(all_hosts))
+worksheet.write(row, col, len(all_hosts), centered)
 col += 2
 worksheet.write(row, col, 'Networks')
 col += 1
-worksheet.write(row, col, len(networks_hosts_count))
-
-row += 2
-col = 0
+worksheet.write(row, col, len(networks_hosts_count), centered)
 
 for network in networks_hosts_count:
+    col = 0
+    row += 2
     worksheet.write(row, col, 'Network')
     col += 1
-    worksheet.write(row, col, network)
+    worksheet.write(row, col, network, centered)
     col += 2
     worksheet.write(row, col, 'Hosts')
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['Hosts'])
-    col = 1
+    worksheet.write(row, col, networks_hosts_count[network]['Hosts'], centered)
+    col -= 1
     row += 2
     worksheet.write(row, col, 'Info')
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['None'])
+    worksheet.write(row, col, networks_hosts_count[network]['None'], centered)
     col = 1
-    row += 1
     worksheet.write(row, col, 'Low')
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['Low'])
+    worksheet.write(row, col, networks_hosts_count[network]['Low'], centered)
     col = 1
     row += 1
     worksheet.write(row, col, 'Medium')
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['Medium'])
+    worksheet.write(row, col, networks_hosts_count[network]['Medium'], centered)
     col = 1
     row += 1
-    worksheet.write(row, col, 'High')
+    worksheet.write(row, col, 'High', red_centered)
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['High'])
+    worksheet.write(row, col, networks_hosts_count[network]['High'], red_centered)
     col = 1
     row += 1
-    worksheet.write(row, col, 'Critical')
+    worksheet.write(row, col, 'Critical', red_centered)
     col += 1
-    worksheet.write(row, col, networks_hosts_count[network]['Critical'])
+    worksheet.write(row, col, networks_hosts_count[network]['Critical'], red_centered)
     col = 1
     row += 1
-    worksheet.write(row, col, 'Total')
+    worksheet.write(row, col, 'Total', bold)
     col += 1
-    worksheet.write(row, col, '=SUM({}{}:{}{})'.format(col_replace(col), row-4, col_replace(col), row))
-    col = 0
+    worksheet.write_formula(row, col, '=SUM({}{}:{}{})'.format(col_replace(col), row - 3, col_replace(col), row),
+                            bold_centered, total_vulns)
+
+row += 3
+col = 0
+
+worksheet.write(row, col, 'Vulnerabilities by port')
+row += 2
+col += 1
+worksheet.write(row, col, 'Port', centered)
+col += 1
+worksheet.write(row, col, 'Protocol', centered)
+col += 1
+worksheet.write(row, col, 'Total', bold_centered)
+for port in ports_protocols:
+    for protocol in ports_protocols[port]:
+        row += 1
+        col = 1
+        worksheet.write(row, col, port, centered)
+        col += 1
+        worksheet.write(row, col, protocol, centered)
+        col += 1
+        worksheet.write(row, col, ports_protocols[port][protocol], bold_centered)
+
+row += 3
+col = 0
+
+worksheet.write(row, col, 'Critical / High vulnerabilities by port')
+row += 2
+col += 1
+worksheet.write(row, col, 'Port', centered)
+col += 1
+worksheet.write(row, col, 'Protocol', centered)
+col += 1
+worksheet.write(row, col, 'Total', bold_centered)
+for port in high_critical_ports_protocols:
+    for protocol in high_critical_ports_protocols[port]:
+        row += 1
+        col = 1
+        worksheet.write(row, col, port, centered)
+        col += 1
+        worksheet.write(row, col, protocol, centered)
+        col += 1
+        worksheet.write(row, col, high_critical_ports_protocols[port][protocol], bold_centered)
+
+row += 3
+col = 0
+
+worksheet.write(row, col, 'Critical / High vulnerabilities detailed')
+for name in high_critical_detailed:
     row += 2
+    col = 1
+    worksheet.write(row, col, 'Vuln')
+    col += 1
+    worksheet.write(row, col, name, red_centered)
+    row += 1
+    col = 1
+    worksheet.write(row, col, 'Number of affected hosts')
+    col += 1
+    worksheet.write(row, col, high_critical_detailed[name]['counter'], centered)
+    row += 1
+    col = 1
+    worksheet.write(row, col, 'Affected hosts addresses')
+    col += 1
+    hosts = ''
+    for host in high_critical_detailed[name]['hosts']:
+        hosts += '{}; '.format(host)
+    worksheet.write(row, col, hosts, centered)
+    row += 1
+    col = 1
+    worksheet.write(row, col, 'Solution', green)
+    col += 1
+    worksheet.write(row, col, high_critical_detailed[name]['solution'], green)
 
+row += 3
+col = 0
+
+other_causes_count = total_vulns - misconfigured_count - outdated_count
+worksheet.write(row, col, 'Following data is not accurate!!!')
+row += 2
+col = 1
+worksheet.write(row, col, 'Misconfigurations')
+col += 1
+worksheet.write(row, col, misconfigured_count, centered)
+col = 1
 row += 1
+worksheet.write(row, col, 'Outdated software')
+col += 1
+worksheet.write(row, col, outdated_count, centered)
+col = 1
+row += 1
+worksheet.write(row, col, 'Other causes')
+col += 1
+worksheet.write(row, col, other_causes_count, centered)
 
-print('\n\n\nVulnerabilities by port:\n')
-ports_protocols = OrderedDict(sorted(ports_protocols.items(), key=lambda x: int(x[0])))
+
+workbook.close()
+
+# console output
+
+if len(networks_hosts_count) < 2:
+    print('\n\nScanned {} hosts in {} network'.format(len(all_hosts), len(networks_hosts_count)))
+else:
+    print('\n\nScanned {} hosts in {} networks'.format(len(all_hosts), len(networks_hosts_count)))
+
+for network in networks_hosts_count:
+    total_vulns = 0
+    for x in networks_hosts_count[network]:
+        if x != 'None' and x != 'Hosts':
+            total_vulns += networks_hosts_count[network][x]
+    print('\n\nNetwork {}.X\t\tHosts:\t{}\t\tInfo:\t{}'.format(network, networks_hosts_count[network]['Hosts'],
+                                                               networks_hosts_count[network]['None']))
+    print('\n\tLow:\t\t{}\n\tMedium:\t\t{}\n\tHigh:\t\t{}\n\tCritical:\t{}\n\tTotal:\t\t{}'.format(
+        networks_hosts_count[network]['Low'], networks_hosts_count[network]['Medium'],
+        networks_hosts_count[network]['High'], networks_hosts_count[network]['Critical'], total_vulns))
+
+print('\n\nVulnerabilities by port:\n')
+ports_protocols = OrderedDict(sorted(ports_protocols.items(), key=lambda y: int(y[0])))
 for port in ports_protocols:
     for protocol in ports_protocols[port]:
         print('\t{}\t{}  \t\t--> {}'.format(port, protocol, ports_protocols[port][protocol]))
 
-print('\n\n\nCritical / High vulnerabilities by port:\n')
-high_critical_ports_protocols = OrderedDict(sorted(high_critical_ports_protocols.items(), key=lambda x: int(x[0])))
+print('\n\nCritical / High vulnerabilities by port:\n')
+high_critical_ports_protocols = OrderedDict(sorted(high_critical_ports_protocols.items(), key=lambda y: int(y[0])))
 for port in high_critical_ports_protocols:
     for protocol in high_critical_ports_protocols[port]:
         print('\t{} {}  \t\t--> {}'.format(port, protocol, high_critical_ports_protocols[port][protocol]))
 
-other_causes_count = total_vulns - misconfigured_count - outdated_count
-print(
-    '\n\n\n\nFollowing data is not accurate!!!\n\n\tMisconfigurations:\t{}\n\tOutdated software:\t{}\n\tOther causes:\t{}'.format(
-        misconfigured_count, outdated_count, other_causes_count))
+print('\n\nCritical / High vulnerabilities detailed:\n')
+for name in high_critical_detailed:
+    print('\tVuln:\t\t\t\t\t\t{}'.format(name))
+    print('\tNumber of affected hosts:\t{}'.format(high_critical_detailed[name]['counter']))
+    hosts = ''
+    for host in high_critical_detailed[name]['hosts']:
+        hosts += '{}; '.format(host)
+    print('\tAffected hosts addresses:\t{}'.format(hosts))
+    solution = high_critical_detailed[name]['solution'].split()
+    solution = ' '.join(solution)
+    print('\tSolution:\t\t\t\t\t{}'.format(solution))
 
-print(high_critical_detailed)
-
-
-for vuln in high_critical_detailed:
-    print(vuln)
-"""
-for item, cost in (high_critical_detailed):
-    worksheet.write(row, col,     item)
-    worksheet.write(row, col + 1, cost)
-    row += 1
-
-worksheet.write(row, 0, 'Total')
-worksheet.write(row, 1, '=SUM(B1:B4)')
-"""
-workbook.close()
+print('\n\n\nFollowing data is not accurate!!!')
+print('\n\tMisconfigurations:\t{}\n\tOutdated software:\t{}\n\tOther causes:\t{}'.format(
+    misconfigured_count, outdated_count, other_causes_count))
