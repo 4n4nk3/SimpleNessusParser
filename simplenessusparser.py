@@ -124,12 +124,12 @@ for network in networks_hosts_count:
     worksheet.write(row, col, networks_hosts_count[network]['Medium'], centered)
     col = 1
     row += 1
-    worksheet.write(row, col, 'High', red_centered)
+    worksheet.write(row, col, 'High')
     col += 1
     worksheet.write(row, col, networks_hosts_count[network]['High'], red_centered)
     col = 1
     row += 1
-    worksheet.write(row, col, 'Critical', red_centered)
+    worksheet.write(row, col, 'Critical')
     col += 1
     worksheet.write(row, col, networks_hosts_count[network]['Critical'], red_centered)
     col = 1
