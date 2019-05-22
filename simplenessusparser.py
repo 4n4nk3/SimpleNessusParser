@@ -26,8 +26,7 @@ def col_replace(column):
 
 with open(sys.argv[1]) as csv_file:
     csv_reader = csv.DictReader(csv_file, delimiter=',')
-    counter = 0
-    for row in csv_reader:
+    for counter, row in enumerate(csv_reader):
         if counter > 0:
             name = row['Name']
             host = row['Host']
@@ -69,11 +68,11 @@ with open(sys.argv[1]) as csv_file:
                         else:
                             high_critical_detailed[name]['counter'] += 1
                             high_critical_detailed[name]['hosts'].add(host)
-                if 'update' in solution or 'Update' in solution or 'upgrade' in solution or 'Upgrade' in solution:
+                solution_lower = solution.lower()
+                if 'update' in solution_lower or 'upgrade' in solution_lower:
                     outdated_count += 1
                 else:
                     misconfigured_count += 1
-        counter += 1
 
 total_vulns = networks_hosts_count[network]['Low'] + networks_hosts_count[network]['Medium'] + \
               networks_hosts_count[network]['High'] + networks_hosts_count[network]['Critical']
@@ -200,9 +199,10 @@ for name in high_critical_detailed:
     col = 1
     worksheet.write(row, col, 'Affected hosts addresses')
     col += 1
-    hosts = ''
-    for host in high_critical_detailed[name]['hosts']:
-        hosts += '{}; '.format(host)
+    #hosts = ''
+    #for host in high_critical_detailed[name]['hosts']:
+    #    hosts += '{}; '.format(host)
+    hosts = '; '.join(high_critical_detailed[name]['hosts'])
     worksheet.write(row, col, hosts, centered)
     row += 1
     col = 1
@@ -234,6 +234,7 @@ col += 1
 worksheet.write(row, col, other_causes_count, centered)
 
 workbook.close()
+
 
 # console output
 
@@ -269,9 +270,10 @@ print('\n\nCritical / High vulnerabilities detailed:\n')
 for name in high_critical_detailed:
     print('\tVuln:\t\t\t\t\t\t{}'.format(name))
     print('\tNumber of affected hosts:\t{}'.format(high_critical_detailed[name]['counter']))
-    hosts = ''
-    for host in high_critical_detailed[name]['hosts']:
-        hosts += '{}; '.format(host)
+    #hosts = ''
+    #for host in high_critical_detailed[name]['hosts']:
+    #    hosts += '{}; '.format(host)
+    hosts = '; '.join(high_critical_detailed[name]['hosts'])
     print('\tAffected hosts addresses:\t{}'.format(hosts))
     solution = high_critical_detailed[name]['solution'].split()
     solution = ' '.join(solution)
